@@ -25,7 +25,6 @@ Geliştirici ortamında çalıştırmak için:
 3. Chrome tarayıcınızı hata ayıklama moduyla (debugging port) başlatın (Kılavuz program arayüzünde mevcuttur).
 4. Uygulamayı çalıştırın: `python yok_tez_bot.py`
 
-*Not: Son kullanıcılar için Inno Setup ile paketlenmiş `.exe` kurulum dosyası [muallimun.net](https://www.muallimun.com) üzerinden edinilebilir.*
 
 ## ⚖️ Yasal Uyarı ve Sorumluluk Reddi
 Bu yazılım, araştırmacılara kolaylık sağlamak amacıyla geliştirilmiş **ücretsiz ve açık kaynaklı** bir otomasyon aracıdır. 
