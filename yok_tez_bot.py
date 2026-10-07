@@ -5,6 +5,8 @@ import threading
 import subprocess
 import re
 import webbrowser
+import urllib.request
+import json
 from PIL import Image
 from openpyxl.cell.cell import ILLEGAL_CHARACTERS_RE
 from datetime import datetime
@@ -14,14 +16,16 @@ from tkinter import filedialog, messagebox
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 
+# Programın Mevcut Sürümü (Yeni sürüm yayınlarken burayı güncelleyeceksiniz)
+MEVCUT_SURUM = "3.5"
+GITHUB_REPO = "muallimun/yok-tez-botu"
+
 # PyInstaller İçin Gerekli Dosya Yolu Bulucu (Klasörlü Derleme İçin Güncellendi)
 def kaynak_yolu(relative_path):
     """ .exe'nin veya .py'nin çalıştığı ana dizini kesin olarak bulur """
     if hasattr(sys, 'frozen'):
-        # Derlenmiş .exe olarak çalışıyorsa, exe'nin yanına bak
         base_path = os.path.dirname(sys.executable)
     else:
-        # CMD'den .py olarak çalışıyorsa, mevcut dizine bak
         base_path = os.path.abspath(".")
     return os.path.join(base_path, relative_path)
 
@@ -32,7 +36,7 @@ ctk.set_default_color_theme("blue")
 class PremiumTezBot(ctk.CTk):
     def __init__(self):
         super().__init__()
-        self.title("YÖK Tez Merkezi | Profesyonel Veri Kazıma Aracı v3.5 (Final)")
+        self.title(f"YÖK Tez Merkezi | Profesyonel Veri Kazıma Aracı v{MEVCUT_SURUM}")
         self.geometry("1020x820")
         self.minsize(980, 800)
         
@@ -43,6 +47,46 @@ class PremiumTezBot(ctk.CTk):
         self.toplam_bulunan_tez = 0
         self.islenen_tez_sayisi = 0
         self.arayuzu_olustur()
+        
+        # YENİ EKLENEN: Arka planda güncelleme kontrolünü başlat
+        self.guncelleme_kontrolunu_baslat()
+
+    def guncelleme_kontrolunu_baslat(self):
+        threading.Thread(target=self._guncelleme_denetle, daemon=True).start()
+
+    def _guncelleme_denetle(self):
+        try:
+            url = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
+            req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+            with urllib.request.urlopen(req, timeout=5) as response:
+                data = json.loads(response.read().decode())
+                latest_tag = data.get("tag_name", "").replace("v", "")
+                release_url = data.get("html_url", "")
+                
+                # Versiyon kıyaslaması
+                if self._versiyon_karsilastir(MEVCUT_SURUM, latest_tag):
+                    self.after(2000, lambda: self._guncelleme_uyarisi_goster(latest_tag, release_url))
+        except Exception:
+            pass # İnternet yoksa veya API hatası verirse sessizce geç
+
+    def _versiyon_karsilastir(self, mevcut, yeni):
+        try:
+            mevcut_parcalar = [int(x) for x in mevcut.split(".")]
+            yeni_parcalar = [int(x) for x in yeni.split(".")]
+            return yeni_parcalar > mevcut_parcalar
+        except:
+            return False
+
+    def _guncelleme_uyarisi_goster(self, yeni_surum, url):
+        cevap = messagebox.askyesno(
+            "Yeni Sürüm Mevcut!",
+            f"YÖK Tez Botu'nun yeni bir sürümü yayınlandı!\n\n"
+            f"Mevcut Sürüm: v{MEVCUT_SURUM}\n"
+            f"Yeni Sürüm: v{yeni_surum}\n\n"
+            "Yeni özellikleri ve hata düzeltmelerini içeren bu güncellemeyi indirmek için indirme sayfasına gitmek ister misiniz?"
+        )
+        if cevap:
+            webbrowser.open(url)
 
     def arayuzu_olustur(self):
         # ==================== KENAR ÇUBUĞU ====================
@@ -53,7 +97,7 @@ class PremiumTezBot(ctk.CTk):
         self.logo_label = ctk.CTkLabel(self.sidebar, text="🎓 YÖK TEZ BOTU", font=ctk.CTkFont(size=24, weight="bold"))
         self.logo_label.grid(row=0, column=0, padx=20, pady=(30, 5))
         
-        self.versiyon_label = ctk.CTkLabel(self.sidebar, text="Akademik Veritabanı Sürümü v3.5", text_color="#AAB7B8", font=ctk.CTkFont(size=12))
+        self.versiyon_label = ctk.CTkLabel(self.sidebar, text=f"Akademik Veritabanı Sürümü v{MEVCUT_SURUM}", text_color="#AAB7B8", font=ctk.CTkFont(size=12))
         self.versiyon_label.grid(row=1, column=0, padx=20, pady=(0, 20))
 
         self.amac_frame = ctk.CTkFrame(self.sidebar, fg_color="#1F618D", corner_radius=8)
@@ -83,6 +127,7 @@ class PremiumTezBot(ctk.CTk):
         
         self.kilavuz_frame = ctk.CTkFrame(self.sidebar, fg_color="#2C3E50", corner_radius=8)
         self.kilavuz_frame.grid(row=5, column=0, padx=15, pady=(0, 10), sticky="ew")
+        # E-devlet uyarınız KORUNDU
         kilavuz_text = (
             "📝 ADIM ADIM KILAVUZ\n\n"
             "1. Üstteki butonla tarayıcıyı açın.\n"
@@ -97,27 +142,14 @@ class PremiumTezBot(ctk.CTk):
         )
         ctk.CTkLabel(self.kilavuz_frame, text=kilavuz_text, justify="left", font=ctk.CTkFont(size=12), text_color="#ECF0F1").pack(padx=10, pady=10, anchor="w")
         
-        # YENİ EKLENEN: Tıklanabilir Şirket Logosu (PyInstaller Uyumlu)
+        # Tıklanabilir Şirket Logosu 
         try:
             logo_path = kaynak_yolu("logo.png")
-            # Boyutlar alanı taşırmaması için küçültüldü (140, 45)
-            logo_image = ctk.CTkImage(light_image=Image.open(logo_path), 
-                                      dark_image=Image.open(logo_path), 
-                                      size=(140, 45)) 
-            
-            self.logo_buton = ctk.CTkButton(
-                self.sidebar, 
-                image=logo_image, 
-                text="", 
-                fg_color="transparent", 
-                hover_color="#2C3E50",
-                width=140, # Butonun görünmez çerçevesini de logoya uydurur
-                command=lambda: webbrowser.open("https://www.muallimun.com")
-            )
+            logo_image = ctk.CTkImage(light_image=Image.open(logo_path), dark_image=Image.open(logo_path), size=(140, 45)) 
+            self.logo_buton = ctk.CTkButton(self.sidebar, image=logo_image, text="", fg_color="transparent", hover_color="#2C3E50", width=140, command=lambda: webbrowser.open("https://www.muallimun.com"))
             self.logo_buton.grid(row=6, column=0, pady=(10, 5))
             self.logo_buton.configure(cursor="hand2")
-            
-        except Exception as e:
+        except Exception:
             self.logo_hata = ctk.CTkLabel(self.sidebar, text="muallimun.com", font=ctk.CTkFont(underline=True), cursor="hand2")
             self.logo_hata.grid(row=6, column=0, pady=(10, 5))
             self.logo_hata.bind("<Button-1>", lambda e: webbrowser.open("https://www.muallimun.com"))
@@ -125,15 +157,7 @@ class PremiumTezBot(ctk.CTk):
         self.lbl_sistem_durumu = ctk.CTkLabel(self.sidebar, text="Sistem: Beklemede", text_color="#2ECC71", font=ctk.CTkFont(weight="bold"))
         self.lbl_sistem_durumu.grid(row=7, column=0, padx=20, pady=15, sticky="s")
 
-        self.btn_yasal = ctk.CTkButton(
-            self.sidebar, 
-            text="⚖️ Yasal Uyarı ve Şartlar", 
-            command=self.yasal_uyari_goster, 
-            fg_color="transparent", 
-            text_color="#95A5A6", 
-            hover_color="#2C3E50",
-            font=ctk.CTkFont(size=11, underline=True)
-        )
+        self.btn_yasal = ctk.CTkButton(self.sidebar, text="⚖️ Yasal Uyarı ve Şartlar", command=self.yasal_uyari_goster, fg_color="transparent", text_color="#95A5A6", hover_color="#2C3E50", font=ctk.CTkFont(size=11, underline=True))
         self.btn_yasal.grid(row=8, column=0, pady=(0, 15), sticky="s")
 
         # ==================== ANA EKRAN ====================
@@ -146,26 +170,20 @@ class PremiumTezBot(ctk.CTk):
         self.settings_card.grid(row=0, column=0, sticky="ew", pady=(0, 20))
         self.settings_card.grid_columnconfigure(0, weight=1)
         
-        # --- YENİ TASARIM: ŞIK BİLGİ KARTI ---
         self.info_card = ctk.CTkFrame(self.settings_card, fg_color="#181824", corner_radius=8)
         self.info_card.grid(row=0, column=0, padx=20, pady=(15, 10), sticky="ew")
         
-        # Satır 1: Varsayılan Sütunlar
         self.lbl_varsayilan_baslik = ctk.CTkLabel(self.info_card, text="✅ Varsayılan Kayıt Sütunları:", font=ctk.CTkFont(size=13, weight="bold"), text_color="#2ECC71")
         self.lbl_varsayilan_baslik.grid(row=0, column=0, padx=15, pady=(12, 0), sticky="w")
-        
         self.lbl_varsayilan_metin = ctk.CTkLabel(self.info_card, text="Tez No, Tez Adı, İngilizce Adı, Yazar, Yıl, Tür, Dil, Konu, Üniversite, Enstitü, Anabilim Dalı, Bilim Dalı, Danışman.", font=ctk.CTkFont(size=12), text_color="#BDC3C7", justify="left")
         self.lbl_varsayilan_metin.grid(row=1, column=0, padx=15, pady=(2, 10), sticky="w")
 
-        # Satır 2: Dikkat Uyarısı
         self.lbl_dikkat_baslik = ctk.CTkLabel(self.info_card, text="⚠️ Dikkat:", font=ctk.CTkFont(size=13, weight="bold"), text_color="#F1C40F")
         self.lbl_dikkat_baslik.grid(row=2, column=0, padx=15, pady=(5, 0), sticky="w")
-        
         self.lbl_dikkat_metin = ctk.CTkLabel(self.info_card, text="Aşağıdaki ekstra verileri eklemek, programın her tez için ek sekmeler açmasını gerektireceğinden toplam işlem süresini bir miktar uzatacaktır.", font=ctk.CTkFont(size=12), text_color="#BDC3C7", justify="left")
         self.lbl_dikkat_metin.grid(row=3, column=0, padx=15, pady=(2, 12), sticky="w")
-        # ------------------------------------
 
-        self.lbl_ayarlar = ctk.CTkLabel(self.settings_card, text="⚙️️ Ekstra Sütun Ayarları (İsteğe Bağlı)", font=ctk.CTkFont(size=14, weight="bold"), text_color="#F39C12")
+        self.lbl_ayarlar = ctk.CTkLabel(self.settings_card, text="⚙️ Ekstra Sütun Ayarları (İsteğe Bağlı)", font=ctk.CTkFont(size=14, weight="bold"), text_color="#F39C12")
         self.lbl_ayarlar.grid(row=1, column=0, padx=20, pady=(10, 5), sticky="w")
         
         self.var_tr = ctk.BooleanVar(value=False)
@@ -187,10 +205,8 @@ class PremiumTezBot(ctk.CTk):
         
         self.prog_header = ctk.CTkFrame(self.progress_card, fg_color="transparent")
         self.prog_header.pack(fill="x", padx=20, pady=(15, 5))
-        
         self.lbl_ilerleme_baslik = ctk.CTkLabel(self.prog_header, text="📊 İşlem Durumu", font=ctk.CTkFont(size=16, weight="bold"))
         self.lbl_ilerleme_baslik.pack(side="left")
-        
         self.lbl_yuzde = ctk.CTkLabel(self.prog_header, text="Bekleniyor...", font=ctk.CTkFont(size=14, weight="bold"), text_color="#F1C40F")
         self.lbl_yuzde.pack(side="right")
         
@@ -198,17 +214,7 @@ class PremiumTezBot(ctk.CTk):
         self.progress_bar.set(0.0)
         self.progress_bar.pack(fill="x", padx=20, pady=(0, 20))
 
-        self.btn_baslat = ctk.CTkButton(
-            self.main_view, 
-            text="🚀 2. Verileri Çek ve Excel'e Kaydet", 
-            command=self.baslat_thread, 
-            height=55, 
-            font=ctk.CTkFont(size=16, weight="bold"), 
-            fg_color="#27AE60", 
-            hover_color="#1E8449",
-            text_color="white",
-            text_color_disabled="white"
-        )
+        self.btn_baslat = ctk.CTkButton(self.main_view, text="🚀 2. Verileri Çek ve Excel'e Kaydet", command=self.baslat_thread, height=55, font=ctk.CTkFont(size=16, weight="bold"), fg_color="#27AE60", hover_color="#1E8449", text_color="white", text_color_disabled="white")
         self.btn_baslat.grid(row=2, column=0, sticky="ew", pady=(0, 20))
 
         self.log_card = ctk.CTkFrame(self.main_view, corner_radius=10, fg_color="#212130")
@@ -216,7 +222,7 @@ class PremiumTezBot(ctk.CTk):
         self.log_card.grid_columnconfigure(0, weight=1)
         self.log_card.grid_rowconfigure(1, weight=1)
         
-        self.lbl_konsol = ctk.CTkLabel(self.log_card, text="🖥️️ Canlı İşlem Konsolu", font=ctk.CTkFont(size=14, weight="bold"))
+        self.lbl_konsol = ctk.CTkLabel(self.log_card, text="🖥️ Canlı İşlem Konsolu", font=ctk.CTkFont(size=14, weight="bold"))
         self.lbl_konsol.grid(row=0, column=0, padx=20, pady=(15, 5), sticky="w")
         
         self.konsol = ctk.CTkTextbox(self.log_card, font=ctk.CTkFont(family="Consolas", size=13), fg_color="#111118", text_color="#2ECC71")
@@ -248,7 +254,6 @@ class PremiumTezBot(ctk.CTk):
             oran = self.islenen_tez_sayisi / self.toplam_bulunan_tez
             oran = min(oran, 1.0) 
             yuzde = int(oran * 100)
-            
             self.progress_bar.set(oran)
             self.lbl_yuzde.configure(text=f"{self.islenen_tez_sayisi} / {self.toplam_bulunan_tez} Kayıt Tamamlandı (%{yuzde})")
         else:
@@ -259,7 +264,6 @@ class PremiumTezBot(ctk.CTk):
             chrome_path = r"C:\Program Files\Google\Chrome\Application\chrome.exe"
             user_data_dir = r"C:\selenium_chrome_profile"
             url = "https://tez.yok.gov.tr/UlusalTezMerkezi/tezSorguSonucYeni.jsp"
-            
             subprocess.Popen(f'"{chrome_path}" --remote-debugging-port=9222 --user-data-dir="{user_data_dir}" "{url}"', shell=True)
             self.lbl_sistem_durumu.configure(text="Tarayıcı Açıldı", text_color="#F1C40F")
             self.log_yaz("🌐 Tarayıcı başarıyla başlatıldı. Lütfen giriş yapıp filtrenizi uygulayın.")
@@ -268,7 +272,6 @@ class PremiumTezBot(ctk.CTk):
 
     def baslat_thread(self):
         if self.islem_devam_ediyor: return
-        
         kayit_yeri = filedialog.asksaveasfilename(
             defaultextension=".xlsx",
             initialfile=f"YOK_Tez_Veritabani_{datetime.now().strftime('%Y%m%d_%H%M')}.xlsx",
@@ -278,7 +281,6 @@ class PremiumTezBot(ctk.CTk):
         if not kayit_yeri: return
 
         self.islem_devam_ediyor = True
-        
         self.konsol.configure(state="normal")
         self.konsol.delete("0.0", "end")
         self.konsol.configure(state="disabled")
@@ -294,7 +296,6 @@ class PremiumTezBot(ctk.CTk):
         self.toplam_bulunan_tez = 0
         self.progress_bar.set(0)
         self.lbl_yuzde.configure(text="Sistem Analiz Ediliyor...")
-        
         self.log_yaz("⚠️ DİKKAT: Veri çekme işlemi başlatıldı! Lütfen tarayıcı penceresine DOKUNMAYIN.")
         threading.Thread(target=self.veri_cek, args=(kayit_yeri,), daemon=True).start()
 
@@ -418,15 +419,12 @@ class PremiumTezBot(ctk.CTk):
                         if self.var_atif.get(): veri["Atıf"] = atif
                         
                         tum_tezler.append(veri)
-                        
                         self.islenen_tez_sayisi += 1
                         self.after(0, self.ilerleme_guncelle)
-                        
                         durum_msj = f"[+] {yazar} (Tez No: {tez_no})" if yazar else f"[-] Yazar Boş (Tez No: {tez_no})"
                         self.after(0, self.log_yaz, durum_msj)
 
                     time.sleep(1.2) 
-                        
                 except Exception:
                     continue
 
@@ -456,10 +454,8 @@ class PremiumTezBot(ctk.CTk):
         if tum_tezler:
             self.after(0, self.log_yaz, "💾 Veriler temizleniyor ve diske yazılıyor, lütfen bekleyin...")
             df = pd.DataFrame(tum_tezler)
-            
             for col in df.columns:
                 df[col] = df[col].apply(lambda x: ILLEGAL_CHARACTERS_RE.sub('', str(x)) if pd.notnull(x) else x)
-            
             try:
                 df.to_excel(kayit_yeri, index=False)
                 self.after(0, self.arayuz_sifirla, f"BÜYÜK BAŞARI! {len(tum_tezler)} tez '{kayit_yeri}' konumuna kaydedildi.", True)
