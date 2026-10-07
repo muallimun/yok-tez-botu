@@ -1,0 +1,24 @@
+YÖK TEZ BOTU PREMIUM - YAZILIM KULLANIM LİSANSI VE YASAL UYARI SÖZLEŞMESİ
+
+Bu programı kurarak, kopyalayarak veya kullanarak, aşağıda belirtilen kullanım koşullarını ve yasal sınırlandırmaları okuduğunuzu, anladığınızı ve kabul ettiğinizi beyan etmiş olursunuz. Şartları kabul etmiyorsanız, kurulumu iptal ediniz ve Programı bilgisayarınızdan siliniz.
+
+1. KULLANIM AMACI VE YETKİLENDİRME
+Bu Program, akademik araştırmacıların, öğrencilerin ve akademisyenlerin literatür taraması süreçlerini otomatize etmek ve hızlandırmak amacıyla tasarlanmış yardımcı bir masaüstü aracıdır. Program, halihazırda kamuya açık (public) olan bilgileri kullanıcının ekranında derleyerek Excel formatına dönüştürme işlevi görür.
+
+2. VERİ GİZLİLİĞİ, KVKK VE TELİF HAKLARI
+Program aracılığıyla elde edilen verilerin (yazar isimleri, danışman bilgileri, tez adları, özet metinleri vb.) kullanımı tamamen son kullanıcının sorumluluğundadır. 
+2.1. Elde edilen verilerin Kişisel Verilerin Korunması Kanunu (KVKK) ve Fikir ve Sanat Eserleri Kanunu kapsamında 3. şahıslarla paylaşılması, yayınlanması veya ticari amaçlarla kullanılması durumunda doğabilecek her türlü hukuki sorumluluk doğrudan kullanıcıya aittir.
+2.2. Geliştirici, Program aracılığıyla derlenen verilerin doğruluğunu, güncelliğini veya yasal statüsünü garanti etmez; verilerin kullanımından doğacak yasal ihlallerde hiçbir şekilde taraf gösterilemez.
+
+3. "OLDUĞU GİBİ" (AS-IS) SUNUM VE GARANTİ REDDİ
+Bu Program "olduğu gibi" sunulmaktadır. Geliştirici, yazılımın hatasız çalışacağına veya kesintisiz hizmet vereceğine dair açık veya zımni hiçbir garanti vermez. Hedef web sitesinin (YÖK Ulusal Tez Merkezi) arayüzünde, altyapısında veya erişim politikalarında yapacağı olası değişiklikler nedeniyle Programın işlevini yitirmesi durumunda, geliştiricinin güncellemeyapma veya sorunu giderme zorunluluğu bulunmamaktadır.
+
+4. SORUMLULUĞUN SINIRLANDIRILMASI
+Programın kullanımından veya kullanılamamasından kaynaklanabilecek doğrudan veya dolaylı maddi/manevi zararlardan, veri kayıplarından, bilgisayar sistemlerinde oluşabilecek arızalardan geliştirici hiçbir koşulda sorumlu tutulamaz. Risk tamamen kullanıcıya aittir.
+
+5. DAĞITIM VE TİCARİ HAKLAR
+Bu yazılımın kodları, tasarımı ve çalışma mantığı geliştiriciye aittir. Programın tersine mühendislik (reverse engineering) yöntemleriyle incelenmesi, kodlarının izinsiz kopyalanması, değiştirilmesi veya farklı bir isim altında ticari bir ürün olarak satılması kesinlikle yasaktır. 
+
+Sözleşmeyi onaylayarak, Programı tamamen kendi iradenizle ve yasalara uygun bir şekilde kullanacağınızı kabul ve taahhüt etmiş olursunuz.
+
+Geliştirici & Yayıncı: muallimun.net
