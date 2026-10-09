@@ -17,7 +17,7 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 
 # Programın Mevcut Sürümü (Yeni sürüm yayınlarken burayı güncelleyeceksiniz)
-MEVCUT_SURUM = "3.5"
+MEVCUT_SURUM = "3.6"
 GITHUB_REPO = "muallimun/yok-tez-botu"
 
 # PyInstaller İçin Gerekli Dosya Yolu Bulucu (Klasörlü Derleme İçin Güncellendi)
@@ -261,14 +261,32 @@ class PremiumTezBot(ctk.CTk):
 
     def tarayiciyi_ac(self):
         try:
-            chrome_path = r"C:\Program Files\Google\Chrome\Application\chrome.exe"
-            user_data_dir = r"C:\selenium_chrome_profile"
-            url = "https://tez.yok.gov.tr/UlusalTezMerkezi/tezSorguSonucYeni.jsp"
+            # 1. Chrome'un olabileceği muhtemel tüm yolları tara
+            olasi_yollar = [
+                r"C:\Program Files\Google\Chrome\Application\chrome.exe",
+                r"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe",
+                os.path.join(os.environ.get('LOCALAPPDATA', ''), r"Google\Chrome\Application\chrome.exe")
+            ]
+            
+            chrome_path = None
+            for yol in olasi_yollar:
+                if os.path.exists(yol):
+                    chrome_path = yol
+                    break
+                    
+            if not chrome_path:
+                messagebox.showerror("Hata", "Google Chrome bilgisayarınızda bulunamadı!\nLütfen Chrome'un bilgisayarınızda standart konuma kurulu olduğundan emin olun.")
+                return
+
+            # 2. C: ana dizini yerine, kullanıcının kendi AppData klasöründe profil oluştur (İzin hatasını kesin çözer)
+            user_data_dir = os.path.join(os.environ.get('LOCALAPPDATA', ''), "yok_tez_bot_chrome_profile")
+            url = "https://tez.yok.gov.tr/UlusalTezMerkezi/tarama.jsp"
+            
             subprocess.Popen(f'"{chrome_path}" --remote-debugging-port=9222 --user-data-dir="{user_data_dir}" "{url}"', shell=True)
             self.lbl_sistem_durumu.configure(text="Tarayıcı Açıldı", text_color="#F1C40F")
             self.log_yaz("🌐 Tarayıcı başarıyla başlatıldı. Lütfen giriş yapıp filtrenizi uygulayın.")
         except Exception as e:
-            messagebox.showerror("Hata", f"Tarayıcı başlatılamadı:\n{e}")
+            messagebox.showerror("Hata", f"Tarayıcı başlatılırken beklenmeyen bir hata oluştu:\n{e}")
 
     def baslat_thread(self):
         if self.islem_devam_ediyor: return
